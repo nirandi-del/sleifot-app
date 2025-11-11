@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b1220" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <title>שליפות ציוד</title>
+
+    <style>
+      /* ---- Base (Mobile-first) ---- */
+      body {
+        font-family: system-ui;
+        margin: 0;
+        background: #0b1220;
+        color: #fff;
+        -webkit-text-size-adjust: 100%;
+        padding-top: env(safe-area-inset-top, 12px);
+        padding-bottom: env(safe-area-inset-bottom, 12px);
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto;
+        padding: 12px env(safe-area-inset-right, 12px) 12px env(safe-area-inset-left, 12px);
+      }
+
+      .card {
+        background: #121a2b;
+        border: 1px solid #1f2a44;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .card:last-of-type { margin-bottom: 0; }
+
+      .row { display: flex; flex-direction: column; gap: 10px; }
+
+      input, button {
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 16px;
+        border-radius: 12px;
+        border: 1px solid #2a3a62;
+        padding: 12px;
+        background: #0e1628;
+        color: #fff;
+      }
+
+      .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; justify-content: center; }
+      .chip {
+        font-size: 14px; padding: 9px 12px; border: 1px solid #2a3a62; border-radius: 12px;
+        cursor: pointer; user-select: none; min-width: 60px; text-align: center;
+      }
+      .chip.active { background: #2d5bff; border-color: #2d5bff; }
+
+      .hidden { display: none; }
+
+      h3 { font-size: 20px; margin: 0 0 10px; }
+      h4 { margin: 0.5rem 0 0.3rem; font-size: 16px; }
+
+      /* Progress */
+      .progress {
+        position: relative; background: #0e1628; border: 1px solid #2a3a62;
+        border-radius: 16px; padding: 10px 8px; margin-bottom: 10px;
+      }
+      .progress .steps {
+        display: flex; gap: 6px; align-items: center; position: relative;
+        overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
+        padding: 0 12px;
+      }
+      .progress .steps::-webkit-scrollbar { height: 6px; }
+      .progress .steps::-webkit-scrollbar-thumb { background: #1f2a44; border-radius: 6px; }
+
+      .pstep { flex: 0 0 auto; width: 85px; text-align: center; z-index: 3; }
+      .pstep .dot {
+        width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ff2d65; background: #121a2b;
+        display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
+      }
+      .pstep .label {
+        font-size: 11px; margin-top: 6px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .pstep.done .dot, .pstep.current .dot { background: #ff2d65; color: #0b1220; }
+      .pstep.current .label { opacity: 1; }
+      .pstep.current .dot { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 0 #ff2d6580; }
+
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 #ff2d6580; }
+        70% { box-shadow: 0 0 0 10px transparent; }
+        100% { box-shadow: 0 0 0 0 transparent; }
+      }
+      .pstep .dot:hover { transform: scale(1.06); }
+
+      .progress .track { display: none !important; }
+      .progress .fill {
+        position: absolute; left: 16px; top: 20px; height: 2px; width: 0; background: #ff2d65;
+        border-radius: 2px; z-index: 2; transition: width 0.2s ease;
+      }
+
+      /* ---- Large screens only ---- */
+      @media (min-width: 700px) {
+        .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+        .card { margin: 0; }
+        .row { flex-direction: row; }
+        input { flex: 1; }
+        button { width: auto; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <div class="card" id="search">
+        <h3>שליפות ציוד</h3>
+        <div class="row" style="margin-top: 8px">
+          <input id="pid" placeholder="מספר אישי" inputmode="numeric" autocomplete="off" />
+          <button id="searchBtn" onclick="onSearch()">חפש</button>
+        </div>
+      </div>
+
+      <div class="card hidden" id="wiz">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <div id="soldierName">—</div>
+          <div id="soldierPid">—</div>
+        </div>
+
+        <div class="progress" id="progress">
+          <div class="track"></div>
+          <div class="fill" id="progFill"></div>
+          <div class="steps" id="progSteps"></div>
+        </div>
+
+        <div id="stepArea"></div>
+
+        <div style="display:flex;justify-content:space-between;margin-top:8px">
+          <button onclick="goBack()">אחורה</button>
+          <div>
+            <button id="nextBtn" onclick="nextStep()">הבא</button>
+            <button id="saveBtn" class="hidden" onclick="save()">שמור</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      /* ======= API (Netlify Function Proxy) ======= */
+      const API_BASE = '/.netlify/functions/gs';
+
+      async function apiGetByPid(pid) {
+        const r = await fetch(`${API_BASE}?route=getByPid&pid=${encodeURIComponent(pid)}`);
+        if (!r.ok) throw new Error('API getByPid failed');
+        return r.json();
+      }
+
+      async function apiSaveUpdates(payload) {
+        const r = await fetch(`${API_BASE}?route=saveUpdates`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!r.ok) throw new Error('API saveUpdates failed');
+        return r.json();
+      }
+
+      // ======= App State =======
+      const MAX_PER_FIELD = {
+        'מחסניות': 6,
+        'תוף נגב': 2,
+        'תוף מאג': 2,
+        'פלטות קרמיות': 2,
+        'חולצת עבודה': 2,
+        'מכנס עבודה': 2,
+      };
+
+      let SCHEMA = []; // [{key, type}]
+      let idx = 0, pid = '', record = {}, updates = {};
+
+      // ======= UI Helpers =======
+      function shortLabel(str) { return str && str.length > 9 ? str.slice(0, 9) + '…' : str || ''; }
+
+      function renderProgress() {
+        const stepsCont = document.getElementById('progSteps');
+        const fill = document.getElementById('progFill');
+        const track = document.querySelector('#progress .track');
+        if (!stepsCont || !fill || !track) return;
+
+        stepsCont.innerHTML = '';
+        (SCHEMA || []).forEach((s, i) => {
+          const el = document.createElement('div');
+          el.className = 'pstep ' + (i < idx ? 'done' : i === idx ? 'current' : 'todo');
+          el.innerHTML = `
+            <div class="dot">${i + 1}</div>
+            <div class="label" title="${s.key}">${shortLabel(s.key)}</div>
+          `;
+          stepsCont.appendChild(el);
+        });
+
+        requestAnimationFrame(() => {
+          fitProgress();
+          const cur = stepsCont.querySelector('.pstep.current');
+          if (cur) {
+            cur.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+          }
+        });
+      }
+
+      function fitProgress() {
+        const stepsCont = document.getElementById('progSteps');
+        const track = document.querySelector('#progress .track');
+        const fill = document.getElementById('progFill');
+
+        const firstDot = stepsCont.querySelector('.pstep:first-child .dot');
+        const lastDot  = stepsCont.querySelector('.pstep:last-child .dot');
+        const curDot   = stepsCont.querySelector(`.pstep:nth-child(${idx + 1}) .dot`);
+        if (!firstDot || !lastDot) return;
+
+        const baseLeft = firstDot.offsetLeft + firstDot.offsetWidth / 2;
+        const endLeft  = lastDot.offsetLeft  + lastDot.offsetWidth  / 2;
+
+        track.style.left = baseLeft + 'px';
+        track.style.width = (endLeft - baseLeft) + 'px';
+
+        const curLeft = curDot ? curDot.offsetLeft + curDot.offsetWidth / 2 : baseLeft;
+        fill.style.left = baseLeft + 'px';
+        fill.style.width = Math.max(0, curLeft - baseLeft) + 'px';
+      }
+
+      // Enter => חיפוש
+      document.getElementById('pid').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') onSearch();
+      });
+
+      // ======= Actions =======
+      function onSearch() {
+        pid = document.getElementById('pid').value.trim();
+        if (!pid) { alert('הקלד מספר אישי'); return; }
+
+        document.getElementById('searchBtn').disabled = true;
+
+        apiGetByPid(pid)
+          .then((res) => {
+            document.getElementById('searchBtn').disabled = false;
+
+            if (!res || !res.ok) { alert(res && res.error ? res.error : 'לא נמצא'); return; }
+
+            record = res.record;
+            SCHEMA = res.schema;
+            updates = {};
+
+            if (!SCHEMA || !SCHEMA.length) {
+              alert('אין שדות לעריכה בגיליון'); return;
+            }
+
+            // דיפולטים לשדות ריקים
+            SCHEMA.forEach((col) => {
+              const key = col.key;
+              const val = record[key];
+              const isEmpty = val === '' || val === null || val === undefined;
+              if (!isEmpty) return;
+
+              if (col.type === 'number' || Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, key)) {
+                record[key] = 0;
+              } else {
+                record[key] = 'זוכה';
+              }
+            });
+
+            document.getElementById('soldierName').textContent = record['שם מלא'] || '—';
+            document.getElementById('soldierPid').textContent  = 'מס׳ אישי: ' + (record['מספר אישי'] || pid);
+
+            idx = 0;
+            document.getElementById('search').classList.add('hidden');
+            document.getElementById('wiz').classList.remove('hidden');
+
+            renderStep();
+            renderProgress();
+          })
+          .catch((err) => {
+            document.getElementById('searchBtn').disabled = false;
+            alert('שגיאת קריאה לשרת: ' + (err && err.message ? err.message : err));
+          });
+      }
+
+      function renderStep() {
+        const area = document.getElementById('stepArea');
+        area.innerHTML = '';
+
+        const step = SCHEMA[idx];
+        if (!step) return;
+
+        const title = document.createElement('h4');
+        title.textContent = step.key;
+        area.appendChild(title);
+
+        const current = Object.prototype.hasOwnProperty.call(updates, step.key)
+          ? updates[step.key]
+          : (record[step.key] ?? '');
+
+        if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
+          const max = MAX_PER_FIELD[step.key];
+          const cont = document.createElement('div');
+          cont.className = 'chips';
+
+          for (let n = 0; n <= max; n++) {
+            const c = document.createElement('div');
+            c.className = 'chip' + (Number(current) === n ? ' active' : '');
+            c.textContent = String(n);
+            c.onclick = () => {
+              [...cont.children].forEach((el) => el.classList.remove('active'));
+              c.classList.add('active');
+              updates[step.key] = n;
+            };
+            cont.appendChild(c);
+          }
+          area.appendChild(cont);
+
+        } else if (step.type === 'number') {
+          const i = document.createElement('input');
+          i.type = 'number';
+          i.value = current || '';
+          i.oninput = () => (updates[step.key] = Number(i.value || 0));
+          area.appendChild(i);
+
+        } else {
+          const t = document.createElement('input');
+          t.value = current || '';
+          t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
+          t.oninput = () => (updates[step.key] = t.value);
+          area.appendChild(t);
+
+          const chips = document.createElement('div');
+          chips.className = 'chips';
+
+          ['זוכה', 'לא זוכה', 'החזיר חלקית'].forEach((v) => {
+            const c = document.createElement('div');
+            c.className = 'chip' + (String(current) === v ? ' active' : '');
+            c.textContent = v;
+            c.onclick = () => {
+              [...chips.children].forEach((el) => el.classList.remove('active'));
+              c.classList.add('active');
+              t.value = v;
+              updates[step.key] = v;
+            };
+            chips.appendChild(c);
+          });
+          area.appendChild(chips);
+        }
+
+        document.getElementById('saveBtn').classList.toggle('hidden', idx !== SCHEMA.length - 1);
+        document.getElementById('nextBtn').classList.toggle('hidden', idx === SCHEMA.length - 1);
+
+        renderProgress();
+      }
+
+      function nextStep() {
+        if (idx < SCHEMA.length - 1) {
+          idx++;
+          renderStep();
+        } else {
+          save();
+        }
+      }
+
+      function goBack() {
+        if (idx === 0) {
+          document.getElementById('wiz').classList.add('hidden');
+          document.getElementById('search').classList.remove('hidden');
+          document.getElementById('pid').value = '';
+          document.getElementById('pid').focus();
+          return;
+        }
+        idx--;
+        renderStep();
+      }
+
+      function save() {
+        apiSaveUpdates({ pid, updates })
+          .then((res) => {
+            if (res && res.ok) {
+              alert('נשמר');
+              document.getElementById('wiz').classList.add('hidden');
+              document.getElementById('search').classList.remove('hidden');
+              document.getElementById('pid').value = '';
+              document.getElementById('pid').focus();
+            } else {
+              alert(res && res.error ? res.error : 'שגיאה בשמירה');
+            }
+          })
+          .catch((err) => {
+            alert('שגיאת שרת בשמירה: ' + (err && err.message ? err.message : err));
+          });
+      }
+
+      // אינטראקציות
+      window.addEventListener('resize', fitProgress);
+      document.getElementById('progSteps').addEventListener('click', (ev) => {
+        const el = ev.target.closest('.pstep');
+        if (!el) return;
+        const steps = [...document.getElementById('progSteps').children];
+        const i = steps.indexOf(el);
+        if (i >= 0) { idx = i; renderStep(); }
+      });
+
+      window.addEventListener('load', () => {
+        const el = document.getElementById('pid');
+        if (el) el.focus();
+      });
+    </script>
+  </body>
+</html>
