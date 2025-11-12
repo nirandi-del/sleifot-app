@@ -133,13 +133,10 @@
 
         <div id="stepArea"></div>
 
-        <div style="display:flex;justify-content:space-between;margin-top:8px">
-          <button onclick="goBack()">אחורה</button>
-          <div>
-            <button id="nextBtn" onclick="nextStep()">הבא</button>
-            <button id="saveBtn" class="hidden" onclick="save()">שמור</button>
-          </div>
-        </div>
+<div style="display:flex;justify-content:space-between;margin-top:8px">
+  <button onclick="goBack()">אחורה</button>
+  <button id="saveBtn" class="hidden" onclick="save()">שמור</button>
+</div>
       </div>
     </div>
 
@@ -153,6 +150,21 @@
         return r.json();
       }
 
+      // ======= Auto-advance helper =======
+let autoAdvanceTimer = null;
+function autoNext() {
+  if (autoAdvanceTimer) clearTimeout(autoAdvanceTimer);
+  autoAdvanceTimer = setTimeout(() => {
+    if (idx < SCHEMA.length - 1) {
+      nextStep();
+    } else {
+      // Last step — don’t auto-save, just focus Save button
+      const saveBtn = document.getElementById('saveBtn');
+      if (saveBtn) saveBtn.focus();
+    }
+  }, 120); // small delay for click animation
+}
+      
       async function apiSaveUpdates(payload) {
         const r = await fetch(`${API_BASE}?route=saveUpdates`, {
           method: 'POST',
@@ -297,29 +309,31 @@
           ? updates[step.key]
           : (record[step.key] ?? '');
 
-        if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
-          const max = MAX_PER_FIELD[step.key];
-          const cont = document.createElement('div');
-          cont.className = 'chips';
+if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
+  const max = MAX_PER_FIELD[step.key];
+  const cont = document.createElement('div');
+  cont.className = 'chips';
 
-          for (let n = 0; n <= max; n++) {
-            const c = document.createElement('div');
-            c.className = 'chip' + (Number(current) === n ? ' active' : '');
-            c.textContent = String(n);
-            c.onclick = () => {
-              [...cont.children].forEach((el) => el.classList.remove('active'));
-              c.classList.add('active');
-              updates[step.key] = n;
-            };
-            cont.appendChild(c);
-          }
-          area.appendChild(cont);
-
-        } else if (step.type === 'number') {
+  for (let n = 0; n <= max; n++) {
+    const c = document.createElement('div');
+    c.className = 'chip' + (Number(current) === n ? ' active' : '');
+    c.textContent = String(n);
+    c.onclick = () => {
+      [...cont.children].forEach((el) => el.classList.remove('active'));
+      c.classList.add('active');
+      updates[step.key] = n;
+      autoNext();               // 👈 add this line
+    };
+    cont.appendChild(c);
+  }
+  area.appendChild(cont);
+} else if (step.type === 'number') {
           const i = document.createElement('input');
           i.type = 'number';
           i.value = current || '';
           i.oninput = () => (updates[step.key] = Number(i.value || 0));
+          i.addEventListener('keydown', (e) => { if (e.key === 'Enter') autoNext(); });
+          i.addEventListener('change', autoNext); // jump when value changes
           area.appendChild(i);
 
         } else {
@@ -327,6 +341,7 @@
           t.value = current || '';
           t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
           t.oninput = () => (updates[step.key] = t.value);
+          t.addEventListener('keydown', (e) => { if (e.key === 'Enter') autoNext(); });
           area.appendChild(t);
 
           const chips = document.createElement('div');
@@ -341,6 +356,7 @@
               c.classList.add('active');
               t.value = v;
               updates[step.key] = v;
+              autoNext();
             };
             chips.appendChild(c);
           });
@@ -348,7 +364,6 @@
         }
 
         document.getElementById('saveBtn').classList.toggle('hidden', idx !== SCHEMA.length - 1);
-        document.getElementById('nextBtn').classList.toggle('hidden', idx === SCHEMA.length - 1);
 
         renderProgress();
       }
