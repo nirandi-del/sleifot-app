@@ -167,6 +167,21 @@
 .save-wrap { margin-top: 12px; display: flex; justify-content: flex-end; }
 .save-wrap.hidden { display: none !important; } /* <-- זה הפתרון */
 
+
+      /* --- Vertical credit list --- */
+.vlist { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.vbtn {
+  width:100%; text-align:center; padding:10px 12px;
+  border:1px solid #2a3a62; border-radius:12px; background:#0e1628;
+  cursor:pointer; user-select:none;
+}
+.vbtn.active { background:#2d5bff; border-color:#2d5bff; }
+.info-line { font-size:14px; opacity:.9; margin:6px 0 4px; }
+.readonly-box {
+  width:100%; box-sizing:border-box; background:#0b1220;
+  border:1px dashed #2a3a62; color:#fff; padding:10px 12px; border-radius:10px;
+}
+      
 /* רווח תחתון כדי שה-bottom-bar לא יכסה תוכן */
 #wiz {
   padding-bottom: 84px; /* תואם לגובה ה-bottom-bar + מרווח נשימה */
@@ -403,43 +418,78 @@ stepsCont.appendChild(el);
           : (record[step.key] ?? '');
 
 if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
-  const max = MAX_PER_FIELD[step.key];
-  const cont = document.createElement('div');
-  cont.className = 'chips';
+  const maxCfg = Number(MAX_PER_FIELD[step.key]) || 0;
 
-  for (let n = 0; n <= max; n++) {
-    const c = document.createElement('div');
-    c.className = 'chip' + (Number(current) === n ? ' active' : '');
-    c.textContent = String(n);
+  // כמה חתום בפועל (מ־DB). אם לא מספר – נאפס ל-0.
+  const signed = Number(record[step.key]);
+  const signedSafe = Number.isFinite(signed) ? signed : 0;
 
-    // ✅ כשמרנדרים מחדש: אם זה הערך הנוכחי וגם הסtep הזה כבר "טופל" – מסמן כ-confirmed
-    if (Number(current) === n && completedKeys.has(step.key)) {
-      c.classList.add('confirmed');
+  // בכמה נשאר חתום כרגע (אם בוצעה בחירה – מתוך updates; אחרת baseline)
+  const currentRemaining = Object.prototype.hasOwnProperty.call(updates, step.key)
+    ? Number(updates[step.key])
+    : signedSafe;
+
+  // כמה כבר זוכה עד כה
+  const credited = Math.max(0, signedSafe - (Number.isFinite(currentRemaining) ? currentRemaining : signedSafe));
+
+  // *** הטווח: עד המספר הגדול מביניהם (קונפיג/חתום בפועל)
+  const limit = Math.max(maxCfg, signedSafe);
+
+  // אינפו + תיבת קריאה בלבד
+  const info = document.createElement('div');
+  info.className = 'info-line';
+  info.textContent = `החייל חתום על ${signedSafe} ${step.key}`;
+  area.appendChild(info);
+
+  const ro = document.createElement('input');
+  ro.className = 'readonly-box';
+  ro.readOnly = true;
+  ro.value = signedSafe;
+  area.appendChild(ro);
+
+  // כפתורי "זוכה על N" אנכיים
+  const vlist = document.createElement('div');
+  vlist.className = 'vlist';
+
+  for (let n = 0; n <= limit; n++) {
+    const btn = document.createElement('div');
+    btn.className = 'vbtn' + (credited === n ? ' active' : '');
+    // אופציונלי: להראות גם כמה יישאר
+    btn.textContent = `זוכה על ${n}  —  יישאר: ${Math.max(0, signedSafe - n)}`;
+
+    if (credited === n && completedKeys.has(step.key)) {
+      btn.classList.add('confirmed');
     }
 
-    c.onclick = () => {
-      [...cont.children].forEach((el) => el.classList.remove('active', 'confirmed'));
-      c.classList.add('active', 'confirmed');
-      updates[step.key] = n;
-      completedKeys.add(step.key);   // סומן כטופל
-      renderProgress();              // לרענן את פס ההתקדמות
-      autoNext();                    // להתקדם
+    btn.onclick = () => {
+      if (n > signedSafe) {
+        alert('אי אפשר לזכות על יותר ממה שהחייל חתום.');
+        return;
+      }
+      const remaining = Math.max(0, signedSafe - n);
+      updates[step.key] = remaining;
+
+      [...vlist.children].forEach(el => el.classList.remove('active', 'confirmed'));
+      btn.classList.add('active', 'confirmed');
+      completedKeys.add(step.key);
+
+      renderProgress();
+      autoNext();
     };
 
-    cont.appendChild(c);
+    vlist.appendChild(btn);
   }
-  area.appendChild(cont);
+
+  area.appendChild(vlist);
+
 } else if (step.type === 'number') {
-  // ===== NUMBER BRANCH (REPLACE ME) =====
+  // ===== NUMBER BRANCH (נשאר כמו שהיה) =====
   const i = document.createElement('input');
   i.type = 'number';
   i.value = current || '';
   i.oninput = () => (updates[step.key] = Number(i.value || 0));
 
-  // אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
-  if (completedKeys.has(step.key)) {
-    i.classList.add('input-confirmed');
-  }
+  if (completedKeys.has(step.key)) i.classList.add('input-confirmed');
 
   i.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -449,7 +499,6 @@ if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
       autoNext();
     }
   });
-
   i.addEventListener('change', () => {
     if (i.value !== '') {
       completedKeys.add(step.key);
@@ -458,91 +507,74 @@ if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
       autoNext();
     }
   });
-
   area.appendChild(i);
 
 } else {
-// ===== TEXT + CHIPS BRANCH (REPLACE ME) =====
-const t = document.createElement('input');
-let displayCurrent = (current || '');
-t.value = displayCurrent || '';
-t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
-t.oninput = () => (updates[step.key] = t.value);
+  // ===== TEXT + CHIPS BRANCH (כולל כלל "החזיר חלקית" רק בברכיות) =====
+  const t = document.createElement('input');
+  let displayCurrent = (current || '');
+  t.value = displayCurrent || '';
+  t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
+  t.oninput = () => (updates[step.key] = t.value);
 
-// אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
-if (completedKeys.has(step.key)) {
-  t.classList.add('input-confirmed');
-}
+  if (completedKeys.has(step.key)) t.classList.add('input-confirmed');
 
-t.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    completedKeys.add(step.key);
-    t.classList.add('input-confirmed');
-    renderProgress();
-    autoNext();
-  }
-});
+  t.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
+      renderProgress();
+      autoNext();
+    }
+  });
+  t.addEventListener('change', () => {
+    if (t.value.trim() !== '') {
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
+      renderProgress();
+    }
+  });
+  area.appendChild(t);
 
-// אם שינו ידנית את הטקסט ושדה לא ריק – נסמן כטופל
-t.addEventListener('change', () => {
-  if (t.value.trim() !== '') {
-    completedKeys.add(step.key);
-    t.classList.add('input-confirmed');
-    renderProgress();
-  }
-});
+  const chips = document.createElement('div');
+  chips.className = 'chips';
 
-area.appendChild(t);
+  const baseOptions = ['זוכה', 'לא זוכה'];
+  const allowPartial = PARTIAL_OK.includes(step.key);
+  const options = allowPartial ? [...baseOptions, 'החזיר חלקית'] : baseOptions;
 
-// --- אפשרויות צ'יפים מותאמות: 'החזיר חלקית' רק ב"ברכיות" ---
-const chips = document.createElement('div');
-chips.className = 'chips';
-
-// בסיס
-const baseOptions = ['זוכה', 'לא זוכה'];
-// האם מותר 'החזיר חלקית' בשדה הזה?
-const allowPartial = PARTIAL_OK.includes(step.key);
-const options = allowPartial ? [...baseOptions, 'החזיר חלקית'] : baseOptions;
-
-// אם יש ערך קודם 'החזיר חלקית' במקום שאסור – ננרמל ל'לא זוכה'
-if (!allowPartial && String(displayCurrent) === 'החזיר חלקית') {
-  displayCurrent = 'לא זוכה';
-  t.value = 'לא זוכה';
-  updates[step.key] = 'לא זוכה';
-}
-
-options.forEach((v) => {
-  const c = document.createElement('div');
-  c.className = 'chip' + (String(displayCurrent) === v ? ' active' : '');
-  c.textContent = v;
-
-  // אם זה הערך הנוכחי וכבר טופל בעבר – הוסף confirmed בזמן רנדר
-  if (String(displayCurrent) === v && completedKeys.has(step.key)) {
-    c.classList.add('confirmed');
+  if (!allowPartial && String(displayCurrent) === 'החזיר חלקית') {
+    displayCurrent = 'לא זוכה';
+    t.value = 'לא זוכה';
+    updates[step.key] = 'לא זוכה';
   }
 
-  c.onclick = () => {
-    // נקה active+confirmed מהאחים
-    [...chips.children].forEach((el) => el.classList.remove('active', 'confirmed'));
+  options.forEach((v) => {
+    const c = document.createElement('div');
+    c.className = 'chip' + (String(displayCurrent) === v ? ' active' : '');
+    c.textContent = v;
 
-    // סמן על הנבחר
-    c.classList.add('active', 'confirmed');
-    t.value = v;
-    updates[step.key] = v;
+    if (String(displayCurrent) === v && completedKeys.has(step.key)) {
+      c.classList.add('confirmed');
+    }
 
-    // סמן כטופל בפועל
-    completedKeys.add(step.key);
-    t.classList.add('input-confirmed');
+    c.onclick = () => {
+      [...chips.children].forEach((el) => el.classList.remove('active', 'confirmed'));
+      c.classList.add('active', 'confirmed');
+      t.value = v;
+      updates[step.key] = v;
 
-    // רענון הפס + התקדמות
-    renderProgress();
-    autoNext();
-  };
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
 
-  chips.appendChild(c);
-});
+      renderProgress();
+      autoNext();
+    };
 
-area.appendChild(chips);
+    chips.appendChild(c);
+  });
+
+  area.appendChild(chips);
 }
 
 document.getElementById('saveWrap').classList.toggle('hidden', idx !== SCHEMA.length - 1);
