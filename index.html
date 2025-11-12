@@ -8,119 +8,185 @@
     <title>שליפות ציוד</title>
 
     <style>
-      /* ---- Base (Mobile-first) ---- */
-      body {
-        font-family: system-ui;
-        margin: 0;
-        background: #0b1220;
-        color: #fff;
-        -webkit-text-size-adjust: 100%;
-        padding-top: env(safe-area-inset-top, 12px);
-        padding-bottom: env(safe-area-inset-bottom, 12px);
-      }
+     /* ---- Base (Mobile-first) ---- */
+body {
+  font-family: system-ui;
+  margin: 0;
+  background: #0b1220;
+  color: #fff;
+  -webkit-text-size-adjust: 100%;
+  padding-top: env(safe-area-inset-top, 12px);
+  padding-bottom: env(safe-area-inset-bottom, 12px);
+}
 
-      .wrap {
-        width: 100%;
-        max-width: 560px;
-        margin: 0 auto;
-        padding: 12px env(safe-area-inset-right, 12px) 12px env(safe-area-inset-left, 12px);
-      }
+/* תקן קופסאות לכל האלמנטים */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
-      .card {
-        background: #121a2b;
-        border: 1px solid #1f2a44;
-        border-radius: 16px;
-        padding: 16px;
-        margin-bottom: 12px;
-      }
-      .card:last-of-type { margin-bottom: 0; }
+/* ---- Layout ---- */
+.wrap {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 12px env(safe-area-inset-right, 12px) 12px env(safe-area-inset-left, 12px);
+}
 
-      .row { display: flex; flex-direction: column; gap: 10px; }
+.card {
+  background: #121a2b;
+  border: 1px solid #1f2a44;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.card:last-of-type { margin-bottom: 0; }
 
-      input, button {
-        width: 100%;
-        box-sizing: border-box;
-        font-size: 16px;
-        border-radius: 12px;
-        border: 1px solid #2a3a62;
-        padding: 12px;
-        background: #0e1628;
-        color: #fff;
-      }
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
-      .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; justify-content: center; }
-      .chip {
-        font-size: 14px; padding: 9px 12px; border: 1px solid #2a3a62; border-radius: 12px;
-        cursor: pointer; user-select: none; min-width: 60px; text-align: center;
-      }
-      .chip.active { background: #2d5bff; border-color: #2d5bff; }
+input, button {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+  border-radius: 12px;
+  border: 1px solid #2a3a62;
+  padding: 12px;
+  background: #0e1628;
+  color: #fff;
+}
 
-      .hidden { display: none; }
+/* ---- Chips ---- */
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  justify-content: center;
+}
+.chip {
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1px solid #2a3a62;
+  border-radius: 12px;
+  cursor: pointer;
+  user-select: none;
+  min-width: 60px;
+  text-align: center;
+}
+.chip.active {
+  background: #2d5bff;
+  border-color: #2d5bff;
+}
+.chip.confirmed {
+  outline: 2px solid #20c997;
+  outline-offset: 2px;
+}
 
-      h3 { font-size: 20px; margin: 0 0 10px; }
-      h4 { margin: 0.5rem 0 0.3rem; font-size: 16px; }
+/* ---- Typography ---- */
+.hidden { display: none; }
+h3 { font-size: 20px; margin: 0 0 10px; }
+h4 { margin: 0.5rem 0 0.3rem; font-size: 16px; }
 
-      /* Progress */
-      .progress {
-        position: relative; background: #0e1628; border: 1px solid #2a3a62;
-        border-radius: 16px; padding: 10px 8px; margin-bottom: 10px;
-      }
-      .progress .steps {
-        display: flex; gap: 6px; align-items: center; position: relative;
-        overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth; -webkit-overflow-scrolling: touch;
-        padding: 0 12px;
-      }
-      .progress .steps::-webkit-scrollbar { height: 6px; }
-      .progress .steps::-webkit-scrollbar-thumb { background: #1f2a44; border-radius: 6px; }
+/* ---- Progress Bar ---- */
+.progress {
+  position: relative;
+  background: #0e1628;
+  border: 1px solid #2a3a62;
+  border-radius: 16px;
+  padding: 10px 8px;
+  margin-bottom: 10px;
+}
+.progress .steps {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 12px;
+}
+.progress .steps::-webkit-scrollbar { height: 6px; }
+.progress .steps::-webkit-scrollbar-thumb { background: #1f2a44; border-radius: 6px; }
 
-      .pstep { flex: 0 0 auto; width: 85px; text-align: center; z-index: 3; }
-      .pstep .dot {
-        width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ff2d65; background: #121a2b;
-        display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;
-      }
-      .pstep .label {
-        font-size: 11px; margin-top: 6px; opacity: 0.85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-      }
-      .pstep.done .dot, .pstep.current .dot { background: #ff2d65; color: #0b1220; }
-      .pstep.current .label { opacity: 1; }
-      .pstep.current .dot { animation: pulse 1.2s ease-in-out infinite; box-shadow: 0 0 0 0 #ff2d6580; }
+.pstep { flex: 0 0 auto; width: 85px; text-align: center; z-index: 3; }
+.pstep .dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #ff2d65;
+  background: #121a2b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+}
+.pstep .label {
+  font-size: 11px;
+  margin-top: 6px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pstep.done .dot,
+.pstep.current .dot {
+  background: #ff2d65;
+  color: #0b1220;
+}
+.pstep.current .label { opacity: 1; }
+.pstep.current .dot {
+  animation: pulse 1.2s ease-in-out infinite;
+  box-shadow: 0 0 0 0 #ff2d6580;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 #ff2d6580; }
+  70% { box-shadow: 0 0 0 10px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.pstep .dot:hover { transform: scale(1.06); }
+.progress .track { display: none !important; }
+.progress .fill {
+  position: absolute;
+  left: 16px;
+  top: 20px;
+  height: 2px;
+  width: 0;
+  background: #ff2d65;
+  border-radius: 2px;
+  z-index: 2;
+  transition: width 0.2s ease;
+}
 
-      @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 #ff2d6580; }
-        70% { box-shadow: 0 0 0 10px transparent; }
-        100% { box-shadow: 0 0 0 0 transparent; }
-      }
-      .pstep .dot:hover { transform: scale(1.06); }
+/* ---- Completed visuals ---- */
+.pstep.done .dot {
+  background: #20c997;
+  border-color: #20c997;
+  color: #0b1220;
+}
+.input-confirmed {
+  box-shadow: 0 0 0 2px #20c99766;
+  border-color: #20c997;
+}
 
-      .progress .track { display: none !important; }
-      .progress .fill {
-        position: absolute; left: 16px; top: 20px; height: 2px; width: 0; background: #ff2d65;
-        border-radius: 2px; z-index: 2; transition: width 0.2s ease;
-      }
-
-      /* ---- Large screens only ---- */
-      @media (min-width: 700px) {
-        .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
-        .card { margin: 0; }
-        .row { flex-direction: row; }
-        input { flex: 1; }
-        button { width: auto; }
-      }
-
-      /* ===== Fixed bottom bar ===== */
+/* ---- Fixed bottom bar ---- */
 .bottom-bar {
   position: fixed;
   bottom: 12px;
   left: 0;
   right: 0;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   max-width: 560px;
   margin: 0 auto;
   padding: 0 16px;
   z-index: 20;
 }
-
 .back-btn {
   opacity: 0.55;
   background: #0e1628;
@@ -134,7 +200,6 @@
   opacity: 0.85;
   transform: translateY(-1px);
 }
-
 .save-btn {
   background: #ff2d65;
   border: none;
@@ -148,59 +213,73 @@
 .save-btn:hover {
   box-shadow: 0 0 12px #ff2d65aa;
 }
-      /* ---- Completed visuals ---- */
-.pstep.done .dot {
-  background: #20c997;   /* ירוק עדין */
-  border-color: #20c997;
-  color: #0b1220;
+
+/* ---- Save area ---- */
+.save-wrap {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
 }
-.chip.confirmed {
+.save-wrap.hidden { display: none !important; }
+
+/* ---- Vertical credit list ---- */
+.vlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+}
+.vbtn {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  padding: 10px 12px;
+  border: 1px solid #2a3a62;
+  border-radius: 12px;
+  background: #0e1628;
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  white-space: normal;
+  word-break: break-word;
+}
+.vbtn.active {
+  background: #2d5bff;
+  border-color: #2d5bff;
+}
+.vbtn.confirmed {
   outline: 2px solid #20c997;
   outline-offset: 2px;
 }
-.input-confirmed {
-  box-shadow: 0 0 0 2px #20c99766;
-  border-color: #20c997;
+.info-line {
+  font-size: 14px;
+  opacity: 0.9;
+  margin: 6px 0 4px;
 }
-
-      /* כפתור שמור סטטי מתחת ל-step */
-.save-wrap { margin-top: 12px; display: flex; justify-content: flex-end; }
-.save-wrap.hidden { display: none !important; } /* <-- זה הפתרון */
-
-
-      /* --- Vertical credit list --- */
-.vlist { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-.vbtn {
-  width:100%; text-align:center; padding:10px 12px;
-  border:1px solid #2a3a62; border-radius:12px; background:#0e1628;
-  cursor:pointer; user-select:none;
-}
-.vbtn.active { background:#2d5bff; border-color:#2d5bff; }
-.info-line { font-size:14px; opacity:.9; margin:6px 0 4px; }
 .readonly-box {
-  width:100%; box-sizing:border-box; background:#0b1220;
-  border:1px dashed #2a3a62; color:#fff; padding:10px 12px; border-radius:10px;
+  width: 100%;
+  background: #0b1220;
+  border: 1px dashed #2a3a62;
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
 }
-      
-/* רווח תחתון כדי שה-bottom-bar לא יכסה תוכן */
+
+/* ---- Bottom padding so bottom-bar won’t cover content ---- */
 #wiz {
-  padding-bottom: 84px; /* תואם לגובה ה-bottom-bar + מרווח נשימה */
-}
-      /* כפתור אחורה לא מתרחב */
-.bottom-bar .back-btn {
-  width: auto;
+  padding-bottom: 84px;
 }
 
-/* כפתור שמור בסוף הטופס לא מתרחב */
-.save-wrap .save-btn {
-  width: auto;
+/* ---- Large screens ---- */
+@media (min-width: 700px) {
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+  .card { margin: 0; }
+  .row { flex-direction: row; }
+  input { flex: 1; }
+  button { width: auto; }
 }
-
-/* אופציונלי – יישור כפתור אחורה בבוטום בר */
-.bottom-bar {
-  justify-content: flex-start; /* או center אם אתה רוצה באמצע */
-}
-
     </style>
   </head>
 
