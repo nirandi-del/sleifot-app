@@ -164,11 +164,8 @@
 }
 
       /* כפתור שמור סטטי מתחת ל-step */
-.save-wrap {
-  margin-top: 12px;
-  display: flex;
-  justify-content: flex-end; /* אם תרצה מיושר ימין: flex-start; אם אמצע: center */
-}
+.save-wrap { margin-top: 12px; display: flex; justify-content: flex-end; }
+.save-wrap.hidden { display: none !important; } /* <-- זה הפתרון */
 
 /* רווח תחתון כדי שה-bottom-bar לא יכסה תוכן */
 #wiz {
