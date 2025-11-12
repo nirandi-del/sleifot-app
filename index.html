@@ -269,6 +269,7 @@ function autoNext() {
         'חולצת עבודה': 2,
         'מכנס עבודה': 2,
       };
+      const PARTIAL_OK = ['ברכיות']; // רק ב"ברכיות" מותר 'החזיר חלקית'
 
       let SCHEMA = []; // [{key, type}]
       let idx = 0, pid = '', record = {}, updates = {};
@@ -461,72 +462,87 @@ if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
   area.appendChild(i);
 
 } else {
-  // ===== TEXT + CHIPS BRANCH (REPLACE ME) =====
-  const t = document.createElement('input');
-  t.value = current || '';
-  t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
-  t.oninput = () => (updates[step.key] = t.value);
+// ===== TEXT + CHIPS BRANCH (REPLACE ME) =====
+const t = document.createElement('input');
+let displayCurrent = (current || '');
+t.value = displayCurrent || '';
+t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
+t.oninput = () => (updates[step.key] = t.value);
 
-  // אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
-  if (completedKeys.has(step.key)) {
+// אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
+if (completedKeys.has(step.key)) {
+  t.classList.add('input-confirmed');
+}
+
+t.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    completedKeys.add(step.key);
     t.classList.add('input-confirmed');
+    renderProgress();
+    autoNext();
+  }
+});
+
+// אם שינו ידנית את הטקסט ושדה לא ריק – נסמן כטופל
+t.addEventListener('change', () => {
+  if (t.value.trim() !== '') {
+    completedKeys.add(step.key);
+    t.classList.add('input-confirmed');
+    renderProgress();
+  }
+});
+
+area.appendChild(t);
+
+// --- אפשרויות צ'יפים מותאמות: 'החזיר חלקית' רק ב"ברכיות" ---
+const chips = document.createElement('div');
+chips.className = 'chips';
+
+// בסיס
+const baseOptions = ['זוכה', 'לא זוכה'];
+// האם מותר 'החזיר חלקית' בשדה הזה?
+const allowPartial = PARTIAL_OK.includes(step.key);
+const options = allowPartial ? [...baseOptions, 'החזיר חלקית'] : baseOptions;
+
+// אם יש ערך קודם 'החזיר חלקית' במקום שאסור – ננרמל ל'לא זוכה'
+if (!allowPartial && String(displayCurrent) === 'החזיר חלקית') {
+  displayCurrent = 'לא זוכה';
+  t.value = 'לא זוכה';
+  updates[step.key] = 'לא זוכה';
+}
+
+options.forEach((v) => {
+  const c = document.createElement('div');
+  c.className = 'chip' + (String(displayCurrent) === v ? ' active' : '');
+  c.textContent = v;
+
+  // אם זה הערך הנוכחי וכבר טופל בעבר – הוסף confirmed בזמן רנדר
+  if (String(displayCurrent) === v && completedKeys.has(step.key)) {
+    c.classList.add('confirmed');
   }
 
-  t.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      completedKeys.add(step.key);
-      t.classList.add('input-confirmed');
-      renderProgress();
-      autoNext();
-    }
-  });
+  c.onclick = () => {
+    // נקה active+confirmed מהאחים
+    [...chips.children].forEach((el) => el.classList.remove('active', 'confirmed'));
 
-  // אם שינו ידנית את הטקסט ושדה לא ריק – נסמן כטופל
-  t.addEventListener('change', () => {
-    if (t.value.trim() !== '') {
-      completedKeys.add(step.key);
-      t.classList.add('input-confirmed');
-      renderProgress();
-    }
-  });
+    // סמן על הנבחר
+    c.classList.add('active', 'confirmed');
+    t.value = v;
+    updates[step.key] = v;
 
-  area.appendChild(t);
+    // סמן כטופל בפועל
+    completedKeys.add(step.key);
+    t.classList.add('input-confirmed');
 
-  const chips = document.createElement('div');
-  chips.className = 'chips';
+    // רענון הפס + התקדמות
+    renderProgress();
+    autoNext();
+  };
 
-  ['זוכה', 'לא זוכה', 'החזיר חלקית'].forEach((v) => {
-    const c = document.createElement('div');
-    c.className = 'chip' + (String(current) === v ? ' active' : '');
-    c.textContent = v;
+  chips.appendChild(c);
+});
 
-    // אם זה הערך הנוכחי וכבר טופל בעבר – להוסיף confirmed בזמן רנדר
-    if (String(current) === v && completedKeys.has(step.key)) {
-      c.classList.add('confirmed');
-    }
-
-    c.onclick = () => {
-      // נקה active+confirmed מהאחים
-      [...chips.children].forEach((el) => el.classList.remove('active', 'confirmed'));
-
-      // סמן על הנבחר
-      c.classList.add('active', 'confirmed');
-      t.value = v;
-      updates[step.key] = v;
-
-      // סמן כטופל בפועל
-      completedKeys.add(step.key);
-      t.classList.add('input-confirmed');
-
-      // רענון הפס + התקדמות
-      renderProgress();
-      autoNext();
-    };
-
-    chips.appendChild(c);
-  });
-
-  area.appendChild(chips);
+area.appendChild(chips);
 }
 
 document.getElementById('saveWrap').classList.toggle('hidden', idx !== SCHEMA.length - 1);
