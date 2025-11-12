@@ -148,6 +148,20 @@
 .save-btn:hover {
   box-shadow: 0 0 12px #ff2d65aa;
 }
+      /* ---- Completed visuals ---- */
+.pstep.done .dot {
+  background: #20c997;   /* ירוק עדין */
+  border-color: #20c997;
+  color: #0b1220;
+}
+.chip.confirmed {
+  outline: 2px solid #20c997;
+  outline-offset: 2px;
+}
+.input-confirmed {
+  box-shadow: 0 0 0 2px #20c99766;
+  border-color: #20c997;
+}
       
     </style>
   </head>
@@ -229,6 +243,7 @@ function autoNext() {
 
       let SCHEMA = []; // [{key, type}]
       let idx = 0, pid = '', record = {}, updates = {};
+      let completedKeys = new Set(); // שלבים שטופלו בפועל
 
       // ======= UI Helpers =======
       function shortLabel(str) { return str && str.length > 9 ? str.slice(0, 9) + '…' : str || ''; }
@@ -241,13 +256,18 @@ function autoNext() {
 
         stepsCont.innerHTML = '';
         (SCHEMA || []).forEach((s, i) => {
-          const el = document.createElement('div');
-          el.className = 'pstep ' + (i < idx ? 'done' : i === idx ? 'current' : 'todo');
-          el.innerHTML = `
-            <div class="dot">${i + 1}</div>
-            <div class="label" title="${s.key}">${shortLabel(s.key)}</div>
-          `;
-          stepsCont.appendChild(el);
+const el = document.createElement('div');
+let cls = 'pstep ';
+if (completedKeys.has(s.key)) cls += 'done';
+else if (i === idx)          cls += 'current';
+else                         cls += 'todo';
+el.className = cls;
+
+el.innerHTML = `
+  <div class="dot">${i + 1}</div>
+  <div class="label" title="${s.key}">${shortLabel(s.key)}</div>
+`;
+stepsCont.appendChild(el);
         });
 
         requestAnimationFrame(() => {
@@ -301,6 +321,7 @@ function autoNext() {
             record = res.record;
             SCHEMA = res.schema;
             updates = {};
+            completedKeys = new Set(); // איפוס בעת טעינת חייל חדש
 
             if (!SCHEMA || !SCHEMA.length) {
               alert('אין שדות לעריכה בגיליון'); return;
@@ -360,50 +381,124 @@ if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
     const c = document.createElement('div');
     c.className = 'chip' + (Number(current) === n ? ' active' : '');
     c.textContent = String(n);
+
+    // ✅ כשמרנדרים מחדש: אם זה הערך הנוכחי וגם הסtep הזה כבר "טופל" – מסמן כ-confirmed
+    if (Number(current) === n && completedKeys.has(step.key)) {
+      c.classList.add('confirmed');
+    }
+
     c.onclick = () => {
-      [...cont.children].forEach((el) => el.classList.remove('active'));
-      c.classList.add('active');
+      [...cont.children].forEach((el) => el.classList.remove('active', 'confirmed'));
+      c.classList.add('active', 'confirmed');
       updates[step.key] = n;
-      autoNext();               // 👈 add this line
+      completedKeys.add(step.key);   // סומן כטופל
+      renderProgress();              // לרענן את פס ההתקדמות
+      autoNext();                    // להתקדם
     };
+
     cont.appendChild(c);
   }
   area.appendChild(cont);
 } else if (step.type === 'number') {
-          const i = document.createElement('input');
-          i.type = 'number';
-          i.value = current || '';
-          i.oninput = () => (updates[step.key] = Number(i.value || 0));
-          i.addEventListener('keydown', (e) => { if (e.key === 'Enter') autoNext(); });
-          i.addEventListener('change', autoNext); // jump when value changes
-          area.appendChild(i);
+  // ===== NUMBER BRANCH (REPLACE ME) =====
+  const i = document.createElement('input');
+  i.type = 'number';
+  i.value = current || '';
+  i.oninput = () => (updates[step.key] = Number(i.value || 0));
 
-        } else {
-          const t = document.createElement('input');
-          t.value = current || '';
-          t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
-          t.oninput = () => (updates[step.key] = t.value);
-          t.addEventListener('keydown', (e) => { if (e.key === 'Enter') autoNext(); });
-          area.appendChild(t);
+  // אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
+  if (completedKeys.has(step.key)) {
+    i.classList.add('input-confirmed');
+  }
 
-          const chips = document.createElement('div');
-          chips.className = 'chips';
+  i.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      completedKeys.add(step.key);
+      i.classList.add('input-confirmed');
+      renderProgress();
+      autoNext();
+    }
+  });
 
-          ['זוכה', 'לא זוכה', 'החזיר חלקית'].forEach((v) => {
-            const c = document.createElement('div');
-            c.className = 'chip' + (String(current) === v ? ' active' : '');
-            c.textContent = v;
-            c.onclick = () => {
-              [...chips.children].forEach((el) => el.classList.remove('active'));
-              c.classList.add('active');
-              t.value = v;
-              updates[step.key] = v;
-              autoNext();
-            };
-            chips.appendChild(c);
-          });
-          area.appendChild(chips);
-        }
+  i.addEventListener('change', () => {
+    if (i.value !== '') {
+      completedKeys.add(step.key);
+      i.classList.add('input-confirmed');
+      renderProgress();
+      autoNext();
+    }
+  });
+
+  area.appendChild(i);
+
+} else {
+  // ===== TEXT + CHIPS BRANCH (REPLACE ME) =====
+  const t = document.createElement('input');
+  t.value = current || '';
+  t.placeholder = 'ערך חופשי (לדוגמה: טקטית צהלית (שח״ר))';
+  t.oninput = () => (updates[step.key] = t.value);
+
+  // אם כבר טופל בעבר – להראות מסגרת ירוקה גם ברנדר
+  if (completedKeys.has(step.key)) {
+    t.classList.add('input-confirmed');
+  }
+
+  t.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
+      renderProgress();
+      autoNext();
+    }
+  });
+
+  // אם שינו ידנית את הטקסט ושדה לא ריק – נסמן כטופל
+  t.addEventListener('change', () => {
+    if (t.value.trim() !== '') {
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
+      renderProgress();
+    }
+  });
+
+  area.appendChild(t);
+
+  const chips = document.createElement('div');
+  chips.className = 'chips';
+
+  ['זוכה', 'לא זוכה', 'החזיר חלקית'].forEach((v) => {
+    const c = document.createElement('div');
+    c.className = 'chip' + (String(current) === v ? ' active' : '');
+    c.textContent = v;
+
+    // אם זה הערך הנוכחי וכבר טופל בעבר – להוסיף confirmed בזמן רנדר
+    if (String(current) === v && completedKeys.has(step.key)) {
+      c.classList.add('confirmed');
+    }
+
+    c.onclick = () => {
+      // נקה active+confirmed מהאחים
+      [...chips.children].forEach((el) => el.classList.remove('active', 'confirmed'));
+
+      // סמן על הנבחר
+      c.classList.add('active', 'confirmed');
+      t.value = v;
+      updates[step.key] = v;
+
+      // סמן כטופל בפועל
+      completedKeys.add(step.key);
+      t.classList.add('input-confirmed');
+
+      // רענון הפס + התקדמות
+      renderProgress();
+      autoNext();
+    };
+
+    chips.appendChild(c);
+  });
+
+  area.appendChild(chips);
+}
 
         document.getElementById('saveBtn').classList.toggle('hidden', idx !== SCHEMA.length - 1);
 
