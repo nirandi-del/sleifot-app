@@ -162,7 +162,33 @@
   box-shadow: 0 0 0 2px #20c99766;
   border-color: #20c997;
 }
-      
+
+      /* כפתור שמור סטטי מתחת ל-step */
+.save-wrap {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end; /* אם תרצה מיושר ימין: flex-start; אם אמצע: center */
+}
+
+/* רווח תחתון כדי שה-bottom-bar לא יכסה תוכן */
+#wiz {
+  padding-bottom: 84px; /* תואם לגובה ה-bottom-bar + מרווח נשימה */
+}
+      /* כפתור אחורה לא מתרחב */
+.bottom-bar .back-btn {
+  width: auto;
+}
+
+/* כפתור שמור בסוף הטופס לא מתרחב */
+.save-wrap .save-btn {
+  width: auto;
+}
+
+/* אופציונלי – יישור כפתור אחורה בבוטום בר */
+.bottom-bar {
+  justify-content: flex-start; /* או center אם אתה רוצה באמצע */
+}
+
     </style>
   </head>
 
@@ -188,10 +214,16 @@
           <div class="steps" id="progSteps"></div>
         </div>
 
-        <div id="stepArea"></div>
+<div id="stepArea"></div>
+
+<!-- כפתור שמור סטטי בסוף הטופס (לא fixed) -->
+<div id="saveWrap" class="save-wrap hidden">
+  <button id="saveBtn" class="save-btn" onclick="save()">שמור</button>
+</div>
+
+<!-- בתחתית המסך נשאר רק "אחורה" -->
 <div class="bottom-bar">
   <button class="back-btn" onclick="goBack()">אחורה</button>
-  <button id="saveBtn" class="hidden save-btn" onclick="save()">שמור</button>
 </div>
       </div>
     </div>
@@ -500,8 +532,7 @@ if (Object.prototype.hasOwnProperty.call(MAX_PER_FIELD, step.key)) {
   area.appendChild(chips);
 }
 
-        document.getElementById('saveBtn').classList.toggle('hidden', idx !== SCHEMA.length - 1);
-
+document.getElementById('saveWrap').classList.toggle('hidden', idx !== SCHEMA.length - 1);
         renderProgress();
       }
 
